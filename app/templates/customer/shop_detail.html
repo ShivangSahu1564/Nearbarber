@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block title %}{{ shop.name }}{% endblock %}{% block content %}
+<section class="page-wrap container"><a href="{{ url_for('customer.shops') }}" class="back-link">← All shops</a><div class="detail-card mt-3">
+  <span class="status-pill open">Available</span><p class="eyebrow mt-4">{{ shop.locality }}</p><h1>{{ shop.name }}</h1><p class="lead muted">{{ shop.address }}</p>
+  {% if shop.contact_phone %}<p>{{ shop.contact_phone }}</p>{% endif %}{% if shop.description %}<p>{{ shop.description }}</p>{% endif %}
+  {% if shop.opening_time %}<p class="muted">Open {{ shop.opening_time.strftime('%H:%M') }}–{{ shop.closing_time.strftime('%H:%M') }}</p>{% endif %}
+  <div class="rule"></div><h2>Services</h2><div class="row g-3">
+    {% for service in shop.services if service.is_active %}<div class="col-md-6"><div class="service-row"><span>{{ service.name }}<small>{{ service.duration_minutes }} minutes</small></span><strong>₹{{ '%.2f'|format(service.price) }}</strong></div></div>
+    {% else %}<p class="muted">This shop has no active services listed yet.</p>{% endfor %}
+  </div>
+  {% if current_user.is_authenticated and current_user.role == 'customer' and shop.services|selectattr('is_active')|list %}
+    <div class="join-queue-panel mt-4"><div><p class="eyebrow mb-1">Walk-in queue</p><h2>Join the queue</h2><p class="muted mb-0">Your wait is an estimate based on services ahead, not a guaranteed appointment time.</p></div>
+      <form method="post" action="{{ url_for('customer.join_shop_queue', shop_id=shop.id) }}" class="join-queue-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label" for="service_id">Choose a service</label><div class="d-flex gap-2 flex-wrap"><select id="service_id" name="service_id" class="form-select" required>{% for service in shop.services if service.is_active %}<option value="{{ service.id }}">{{ service.name }} · {{ service.duration_minutes }} min</option>{% endfor %}</select><button class="btn btn-gold">Get a queue token</button></div></form>
+    </div>
+  {% elif not current_user.is_authenticated %}<div class="join-queue-panel mt-4"><div><p class="eyebrow mb-1">Walk-in queue</p><h2>Join the queue</h2><p class="muted mb-0">Sign in as a customer to take a queue token.</p></div><a class="btn btn-gold" href="{{ url_for('auth.login', next=request.path) }}">Sign in to join</a></div>
+  {% elif current_user.role != 'customer' %}<p class="small muted mt-4">Queue tokens are available to customer accounts.</p>{% endif %}
+  <p class="small muted mt-4 mb-0">A queue token is not an appointment booking.</p>
+</div></section>{% endblock %}
